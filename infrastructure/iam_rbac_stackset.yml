@@ -1,0 +1,183 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  ParamPipelineName:
+    Type: String
+  ParamOrganisationUnitId:
+    Type: String
+  ParamPrimaryAccountId:
+    Type: String
+  ParamKmsKeyArn:
+    Type: String
+  ParamDeployerRoleName:
+    Type: String
+  ParamAssumerRoleName:
+    Type: String
+
+Resources:
+
+  StackSet:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: false
+      Capabilities:
+        - CAPABILITY_NAMED_IAM
+      Description: 'Deploy an IAM Role to deploy RBAC roles across accounts'
+      OperationPreferences:
+        FailureToleranceCount: 1
+        MaxConcurrentCount: 5
+      Parameters:
+        - ParameterKey: ParamPrimaryAccountId
+          ParameterValue: !Ref ParamPrimaryAccountId
+        - ParameterKey: ParamKmsKeyArn
+          ParameterValue: !Ref ParamKmsKeyArn
+        - ParameterKey: ParamDeployerRoleName
+          ParameterValue: !Ref ParamDeployerRoleName
+        - ParameterKey: ParamAssumerRoleName
+          ParameterValue: !Ref ParamAssumerRoleName
+      PermissionModel: SERVICE_MANAGED # SERVICE_MANGED | SELF_MANAGED
+      StackInstancesGroup:
+        - DeploymentTargets:
+            OrganizationalUnitIds:
+              - !Ref ParamOrganisationUnitId
+          Regions:
+            - !Ref AWS::Region
+      StackSetName: !Sub '${ParamPipelineName}-RbacStackSet'
+      TemplateBody: |
+        AWSTemplateFormatVersion: 2010-09-09
+        Parameters:
+          ParamPrimaryAccountId:
+            Type: String
+          ParamKmsKeyArn:
+            Type: String
+          ParamDeployerRoleName:
+            Type: String
+          ParamAssumerRoleName:
+            Type: String
+        Resources:
+          DeployerPolicy:
+            Type: AWS::IAM::ManagedPolicy
+            Properties:
+              ManagedPolicyName: DeployerPolicy
+              PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                  - Action: # All cloudformation actions go here
+                      - 'cloudformation:CreateStack'
+                      - 'cloudformation:DeleteStack'
+                      - 'cloudformation:Describe*'
+                      - 'cloudformation:Get*'
+                      - 'cloudformation:List*'
+                      - 'iam:AttachRolePolicy'
+                      - 'iam:CreatePolicy'
+                      - 'iam:CreatePolicyVersion'
+                      - 'iam:CreateRole'
+                      - 'iam:DeletePolicy'
+                      - 'iam:DeletePolicyVersion'
+                      - 'iam:DeleteRole'
+                      - 'iam:DeleteRolePermissionsBoundary'
+                      - 'iam:DeleteRolePolicy'
+                      - 'iam:DeleteServiceLinkedRole'
+                      - 'iam:DetachRolePolicy'
+                      - 'iam:GetContextKeysForCustomPolicy'
+                      - 'iam:GetContextKeysForPrincipalPolicy'
+                      - 'iam:GetPolicy'
+                      - 'iam:GetPolicyVersion'
+                      - 'iam:GetRole'
+                      - 'iam:GetRolePolicy'
+                      - 'iam:GetServiceLastAccessedDetails'
+                      - 'iam:GetServiceLastAccessedDetailsWithEntities'
+                      - 'iam:GetServiceLinkedRoleDeletionStatus'
+                      - 'iam:ListAccountAliases'
+                      - 'iam:ListAttachedRolePolicies'
+                      - 'iam:ListEntitiesForPolicy'
+                      - 'iam:ListPolicies'
+                      - 'iam:ListPoliciesGrantingServiceAccess'
+                      - 'iam:ListPolicyVersions'
+                      - 'iam:ListRolePolicies'
+                      - 'iam:ListRoles'
+                      - 'iam:ListRoles'
+                      - 'iam:ListRoleTags'
+                      - 'iam:PassRole'
+                      - 'iam:PutRolePermissionsBoundary'
+                      - 'iam:PutRolePolicy'
+                      - 'iam:SetDefaultPolicyVersion'
+                      - 'iam:SimulatePrincipalPolicy'
+                      - 'iam:TagRole'
+                      - 'iam:UntagRole'
+                      - 'iam:UpdateAssumeRolePolicy'
+                      - 'iam:UpdateRole'
+                      - 'iam:UpdateRoleDescription'
+                    Effect: Allow
+                    Resource: '*'
+                  - Sid: 'GrantS3PermissionsToDeployNestedStacks'
+                    Effect: Allow
+                    Action:
+                      - s3:*
+                    Resource: '*'
+                  - Effect: Allow
+                    Action: ['kms:Decrypt', 'kms:Encrypt']
+                    Resource: !Ref ParamKmsKeyArn
+          DeployerRole:
+            Type: AWS::IAM::Role
+            Properties:
+              AssumeRolePolicyDocument:
+                Statement:
+                  - Action: ['sts:AssumeRole']
+                    Effect: Allow
+                    Principal:
+                      AWS:
+                        - !GetAtt AssumerRole.Arn
+                      Service: [cloudformation.amazonaws.com]
+              Description: 'CFN Rbac Deployer Role for this account'
+              ManagedPolicyArns:
+                - !Ref DeployerPolicy
+              MaxSessionDuration: 3600 # 1 hour as expressed in seconds
+              RoleName: !Sub ${ParamDeployerRoleName}
+          AssumerPolicy:
+            Type: AWS::IAM::Policy
+            Properties:
+              PolicyName: CrossAccountPolicy
+              PolicyDocument:
+                Version: 2012-10-17
+                Statement:
+                  - Effect: Allow
+                    Action:
+                      - 'cloudformation:CreateStack'
+                      - 'cloudformation:DeleteStack'
+                      - 'cloudformation:DescribeStacks'
+                      - 'cloudformation:UpdateStack'
+                      - 'iam:PassRole'
+                      - 's3:DeleteObject*'
+                      - 's3:Describe*'
+                      - 's3:Get*'
+                      - 's3:List*'
+                    Resource: '*'
+                  - Effect: Allow
+                    Action: ['kms:Decrypt', 'kms:Encrypt']
+                    Resource: !Ref ParamKmsKeyArn
+              Roles: [!Ref AssumerRole]
+          AssumerRole:
+            Type: AWS::IAM::Role
+            Properties:
+              AssumeRolePolicyDocument:
+                Statement:
+                  - Action: ['sts:AssumeRole']
+                    Effect: Allow
+                    Principal:
+                      AWS: [!Sub 'arn:aws:iam::${ParamPrimaryAccountId}:root']
+              Description: Cross Account Assume Role for RBAC
+              RoleName: !Sub ${ParamAssumerRoleName}
+        Outputs:
+          DeployerRoleArn:
+            Description: 'DeployerRole Arn'
+            Value: !GetAtt DeployerRole.Arn
+          AssumerRoleArn:
+            Description: 'AssumerRole Arn'
+            Value: !GetAtt AssumerRole.Arn
+
+Outputs:
+  StackSetId:
+    Value: !Ref StackSet

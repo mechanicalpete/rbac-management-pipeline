@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  ParamGroupName:
+    Type: String
+    Description: The name of the IAM Group.
+  ParamCrossAccountRoleName:
+    Type: String
+    Description: The name of the cross-account role to assume
+  ParamChild1AccountId:
+    Type: String
+  ParamCsvListOfUsernames:
+    Type: String
+    Description: A command separated list of IAM Usernames that will be added to this Group
+
+Resources:
+
+  GroupManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub '${ParamGroupName}Policy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: GrantPermissionsToCrossAccountAssumeRole
+            Effect: Allow
+            Action: ['iam:PassRole', 'sts:AssumeRole']
+            Resource:
+              - !Sub 'arn:aws:iam::${ParamChild1AccountId}:role/${ParamCrossAccountRoleName}'
+
+  Group:
+    Type: 'AWS::IAM::Group'
+    Properties:
+      GroupName: !Ref ParamGroupName
+      ManagedPolicyArns:
+        - !Ref GroupManagedPolicy
+
+  AddUsersToGroup:
+    Type: AWS::IAM::UserToGroupAddition
+    DependsOn:
+      - Group
+    Properties:
+      GroupName: !Ref ParamGroupName
+      Users: !Split [",", !Ref ParamCsvListOfUsernames]

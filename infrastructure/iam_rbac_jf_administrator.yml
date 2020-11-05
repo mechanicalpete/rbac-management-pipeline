@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  ParamPrimaryAccountId:
+    Type: String
+    Description: The Account ID of the Master account, used to grant cross-account role assumption.
+  ParamAdministratorRoleName:
+    Type: String
+    Description: The name to give the Administrator role.
+
+Resources:
+
+  Administrator:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: [!Ref ParamPrimaryAccountId]
+            Action: ['sts:AssumeRole']
+      MaxSessionDuration: 43200 # 12 hours (in seconds)
+      RoleName: !Ref ParamAdministratorRoleName
+
+  AdministratorPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${ParamAdministratorRoleName}-policy'
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: ['*']
+            Resource: ['*']
+      Roles:
+        - !Ref Administrator
+
+Outputs:
+  AdministratorArn:
+    Description: Administrator Arn
+    Value: !GetAtt Administrator.Arn
+  AdministratorRoleId:
+    Description: Administrator RoleId
+    Value: !GetAtt Administrator.RoleId

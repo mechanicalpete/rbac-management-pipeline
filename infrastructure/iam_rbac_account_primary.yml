@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  ParamBucketName:
+    Type: String
+    Description: The bucket to source the child templates from
+  ParamBucketRegion:
+    Type: String
+    Description: The region where the bucket is located
+  ParamDefaultPassword:
+    Type: String
+    NoEcho: true
+    Description: The default password to set (it must be changed on first login).
+  ParamChild1AccountId:
+    Type: String
+  ParamAdministratorRoleName:
+    Type: String
+    Description: The IAM Role Name to give the Administrator Job Function
+  ParamReadOnlyRoleName:
+    Type: String
+    Description: The IAM Role Name to give the ReadOnly Job Function
+
+Resources:
+
+  ### Users
+
+  IamUser:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        ParamUserName : 'RbacUser'
+        ParamDefaultPassword : !Ref ParamDefaultPassword
+      TemplateURL: !Sub 'https://${ParamBucketName}.s3-${ParamBucketRegion}.amazonaws.com/infrastructure/iam_rbac_iam_user.yml'
+      TimeoutInMinutes: 5 # If not specified then there is no timeout.
+
+  # ### Groups
+
+  IamGroupAwsConsole:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        ParamGroupName: 'RbacAwsConsole'
+        ParamCsvListOfUsernames:
+          Fn::Join:
+            - ','
+            - - !GetAtt ['IamUser','Outputs.IamUserName']
+      TemplateURL: !Sub 'https://${ParamBucketName}.s3-${ParamBucketRegion}.amazonaws.com/infrastructure/iam_rbac_iam_user_self_management.yml'
+      TimeoutInMinutes: 5 # If not specified then there is no timeout.
+
+  IamGroupAdministrator:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        ParamGroupName: !Sub '${ParamAdministratorRoleName}-Group'
+        ParamCrossAccountRoleName: !Ref ParamAdministratorRoleName
+        ParamChild1AccountId: !Ref ParamChild1AccountId
+        ParamCsvListOfUsernames:
+          Fn::Join:
+            - ','
+            - - !GetAtt ['IamUser','Outputs.IamUserName']
+      TemplateURL: !Sub 'https://${ParamBucketName}.s3-${ParamBucketRegion}.amazonaws.com/infrastructure/iam_rbac_iam_group.yml'
+      TimeoutInMinutes: 5 # If not specified then there is no timeout.
+
+  IamGroupReadOnly:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        ParamGroupName: !Sub '${ParamReadOnlyRoleName}Group'
+        ParamCrossAccountRoleName: !Ref ParamReadOnlyRoleName
+        ParamChild1AccountId: !Ref ParamChild1AccountId
+        ParamCsvListOfUsernames:
+          Fn::Join:
+            - ','
+            - - !GetAtt ['IamUser','Outputs.IamUserName']
+      TemplateURL: !Sub 'https://${ParamBucketName}.s3-${ParamBucketRegion}.amazonaws.com/infrastructure/iam_rbac_iam_group.yml'
+      TimeoutInMinutes: 5 # If not specified then there is no timeout.
+
+  # ### Roles
+
+  IamRoleLocalAdministrator:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        ParamRoleName: !Sub 'Sudo${ParamAdministratorRoleName}'
+        ParamCsvListOfUserArns:
+          Fn::Join:
+            - ','
+            - - !GetAtt ['IamUser','Outputs.IamUserArn']
+      TemplateURL: !Sub 'https://${ParamBucketName}.s3-${ParamBucketRegion}.amazonaws.com/infrastructure/iam_rbac_role_local_admin.yml'
+      TimeoutInMinutes: 5 # If not specified then there is no timeout.

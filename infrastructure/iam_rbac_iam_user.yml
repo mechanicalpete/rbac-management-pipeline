@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  ParamDefaultPassword:
+    Type: String
+    NoEcho: true
+    Description: The default password to set (it must be changed on first login).
+  ParamUserName:
+    Type: String
+    Description: The IAM UserName to assign to the new user.
+
+Resources:
+
+  IamUser:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: !Ref ParamDefaultPassword
+        PasswordResetRequired: true
+      UserName: !Ref ParamUserName
+
+Outputs:
+  IamUserName:
+    Description: IamUser Name
+    Value: !Ref IamUser
+  IamUserArn:
+    Description: IamUser Arn
+    Value: !GetAtt IamUser.Arn

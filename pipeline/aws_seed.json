@@ -1,0 +1,17 @@
+{
+  "Parameters": {
+    "ParamPipelineName": "@@camel-case-name@@",
+    "ParamBucketPrefix": "@@kebab-case-name@@",
+    "ParamBucketRegion": "@@aws-region@@",
+    "ParamOrganisationUnitId": "@@aws-organisational-unit@@",
+    "ParamDeployerRoleName": "@@aws-rolename-deployer@@",
+    "ParamAssumerRoleName": "@@aws-rolename-assumer@@",
+    "ParamChild1AccountId": "@@aws-child-accountid@@",
+    "ParamAdministratorRoleName": "Admin",
+    "ParamReadOnlyRoleName": "ReadOnly",
+    "ParamDefaultPassword": "MustChangeThis0nMyF1rstLogin!"
+  },
+  "Tags": {
+    "Project": "@@camel-case-name@@"
+  }
+}

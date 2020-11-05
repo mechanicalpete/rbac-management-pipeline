@@ -1,0 +1,42 @@
+[
+  {
+    "ParameterKey": "ParamPipelineName",
+    "ParameterValue": "@@camel-case-name@@"
+  },
+  {
+    "ParameterKey": "ParamBucketPrefix",
+    "ParameterValue": "@@kebab-case-name@@"
+  },
+  {
+    "ParameterKey": "ParamBucketRegion",
+    "ParameterValue": "@@aws-region@@"
+  },
+  {
+    "ParameterKey": "ParamOrganisationUnitId",
+    "ParameterValue": "@@aws-organisational-unit@@"
+  },
+  {
+    "ParameterKey": "ParamDeployerRoleName",
+    "ParameterValue": "@@aws-rolename-deployer@@"
+  },
+  {
+    "ParameterKey": "ParamAssumerRoleName",
+    "ParameterValue": "@@aws-rolename-assumer@@"
+  },
+  {
+    "ParameterKey": "ParamChild1AccountId",
+    "ParameterValue": "@@aws-child-accountid@@"
+  },
+  {
+    "ParameterKey": "ParamAdministratorRoleName",
+    "ParameterValue": "Admin"
+  },
+  {
+    "ParameterKey": "ParamReadOnlyRoleName",
+    "ParameterValue": "ReadOnly"
+  },
+  {
+    "ParameterKey": "ParamDefaultPassword",
+    "ParameterValue": "MustChangeThis0nMyF1rstLogin!"
+  }
+]

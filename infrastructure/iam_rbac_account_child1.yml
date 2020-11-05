@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  ParamBucketName:
+    Type: String
+    Description: The bucket to source the child templates from
+  ParamBucketRegion:
+    Type: String
+    Description: The region where the bucket is located
+  ParamPrimaryAccountId:
+    Type: String
+    Description: The Master Account ID
+  ParamAdministratorRoleName:
+    Type: String
+  ParamReadOnlyRoleName:
+    Type: String
+
+Resources:
+
+  Administrator:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        ParamPrimaryAccountId : !Ref ParamPrimaryAccountId
+        ParamAdministratorRoleName : !Ref ParamAdministratorRoleName
+      TemplateURL: !Sub 'https://${ParamBucketName}.s3-${ParamBucketRegion}.amazonaws.com/infrastructure/iam_rbac_jf_administrator.yml'
+      TimeoutInMinutes: 5 # If not specified then there is no timeout.
+
+  ReadOnly:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        ParamPrimaryAccountId : !Ref ParamPrimaryAccountId
+        ParamReadOnlyRoleName : !Ref ParamReadOnlyRoleName
+      TemplateURL: !Sub 'https://${ParamBucketName}.s3-${ParamBucketRegion}.amazonaws.com/infrastructure/iam_rbac_jf_readonly.yml'
+      TimeoutInMinutes: 5 # If not specified then there is no timeout.

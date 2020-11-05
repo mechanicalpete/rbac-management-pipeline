@@ -1,0 +1,26 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+    commands:
+      - pip install cfn-lint
+
+  pre_build:
+    commands:
+      - TEMPLATE_FILES=$(ls -R -d infrastructure/*.yml && ls -R -d infrastructure/**/*.yml 2> /dev/null || exit 0)
+      - |
+        for cfn_template in $TEMPLATE_FILES; do
+          echo "Validating CloudFormation template file '${cfn_template}'"
+          aws cloudformation validate-template --template-body file://$cfn_template
+          cfn-lint $cfn_template
+        done
+
+  build:
+    commands:
+      - echo "Copying child stack templates to S3"
+      - |
+        for child_template in $TEMPLATE_FILES; do
+          aws s3 cp --sse "aws:kms" --sse-kms-key-id "$KMSKEYARN" "$child_template" "s3://$TEMPLATE_BUCKET/$child_template"
+        done

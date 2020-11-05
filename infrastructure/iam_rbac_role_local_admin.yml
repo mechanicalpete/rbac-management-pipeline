@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  ParamRoleName:
+    Type: String
+    Description: The name of the IAM Role.
+  ParamCsvListOfUserArns:
+    Type: String
+    Description: A command separated list of IAM Usernames that will be added to this Role
+
+Resources:
+
+  Administrator:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Split [",", !Ref ParamCsvListOfUserArns]
+            Action: ['sts:AssumeRole']
+      MaxSessionDuration: 43200 # 12 hours (in seconds)
+      RoleName: !Ref ParamRoleName
+
+  AdministratorPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${ParamRoleName}-policy'
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: ['*']
+            Resource: ['*']
+      Roles:
+        - !Ref Administrator
+
+Outputs:
+  AdministratorArn:
+    Description: Administrator Arn
+    Value: !GetAtt Administrator.Arn
+  AdministratorRoleId:
+    Description: Administrator RoleId
+    Value: !GetAtt Administrator.RoleId
