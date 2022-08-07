@@ -67,6 +67,11 @@ Resources:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
       BucketName: !Sub '${ParamBucketPrefix}-${ParamBucketRegion}-${ParamBucketSuffix}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
 
   CodePipelineBucketPolicy:
     Type: AWS::S3::BucketPolicy
